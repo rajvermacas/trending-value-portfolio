@@ -1,0 +1,1 @@
+NIFTY_STOCKS_CSV_FILENAME="nifty_stock_names.csv"
