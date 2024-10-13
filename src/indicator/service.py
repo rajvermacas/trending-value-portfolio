@@ -1,6 +1,8 @@
 import pandas as pd
-from stock_data.service import get_nifty_stock_names, get_stocks_with_financials
+from stock_data.service import get_stocks_with_financials, get_price_change
 from typing import List
+from utils.service import init_log
+import builtins
 
 
 def assign_ranks_to_financial_metrics(df: pd.DataFrame) -> pd.DataFrame:
@@ -41,8 +43,21 @@ def assign_ranks_to_financial_metrics(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def process_stocks(ticker_names: List[str]) -> pd.DataFrame:
+def process_stocks(ticker_names: List[str], counter: int) -> pd.DataFrame:
+    init_log(counter)
+    
+    builtins.logging.info(f"Processing ticker counter={counter}")
+    builtins.logging.info(f"Get stocks financials for ticker counter={counter}")
     df = get_stocks_with_financials(ticker_names)
+
+    builtins.logging.info(f"Get price change for ticker counter={counter}")
+    df = get_price_change(df)
+
+    builtins.logging.info(f"Assinging ranks to financial metrics for ticker counter={counter}")
     df = assign_ranks_to_financial_metrics(df)
+
+    builtins.logging.info(f"Sorting dataframe by Sum of Ranks for ticker counter={counter}")
     df = df.sort_values(by="Sum of Ranks", ascending=True)
+    builtins.logging.info(f"Sorted dataframe for ticker counter={counter}")
+    
     return df

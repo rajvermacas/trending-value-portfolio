@@ -4,6 +4,8 @@ import sys
 import os
 import argparse
 import pandas as pd
+import logging
+import builtins
 
 
 def init_project():
@@ -30,31 +32,46 @@ def init_project():
 
     os.environ['LOCAL_MODE'] = str(args.local)
 
+    from utils.service import init_log
+    init_log("main")
+
 
 if __name__ == "__main__":
     init_project()
 
 # ============================ Business logic ==============================
 if __name__ == "__main__":
-    print("Main execution starts")
-    from stock_data.service import get_nifty_stock_names, get_stocks_with_financials
+    from stock_data.service import get_nifty_stock_names
     from indicator.service import process_stocks
     from multiprocessing import Pool
+    import math
+
+    print("Main execution starts")
+
+    process_count = os.cpu_count()
+    print(f"Process count: {process_count}")
 
     ticker_names = get_nifty_stock_names()
 
-    page_size = 50
+    page_size = len(ticker_names) // process_count
+    print(f"Stock Page size: {page_size}")
+
     params = []
     result_dataframes = []
 
     for i in range(0, len(ticker_names), page_size):                    
         ticker_names_page = ticker_names[i:i+page_size]        
-        params.append((ticker_names_page))
+        params.append((ticker_names_page, math.ceil(i/page_size)))
     
-    process_count = os.cpu_count()
-    
-    with Pool(process_count) as p:
-        result_dataframes = p.map(process_stocks, params)
+    if os.getenv("LOCAL_MODE") == "True":
+        print("Running in local mode")
+        ticker_names = ["AEGISCHEM.NS", "PVP.NS"]
+        result_dataframes.append(process_stocks(ticker_names, 0))
+
+    else:
+        with Pool(process_count) as p:
+            print("Running in distributed mode. Please check logs in output/logs")
+            result_dataframes = p.starmap(process_stocks, params)
 
     # Combine all dataframes into a single dataframe
     combined_df = pd.concat(result_dataframes, ignore_index=True)
@@ -62,10 +79,10 @@ if __name__ == "__main__":
     # Sort the combined dataframe by "Sum of Ranks" in ascending order
     combined_df = combined_df.sort_values(by="Sum of Ranks", ascending=True)
 
-    print("Combined and sorted dataframe:")
-    print(combined_df)
+    builtins.logging.info("Combined and sorted dataframe:")
+    builtins.logging.info(combined_df)
 
     # Optionally, you can save the combined dataframe to a CSV file
-    output_file = os.path.join(os.environ['OUTPUT_DIR'], "combined_stock_metrics.csv")
+    output_file = os.path.join(os.environ['OUTPUT_DIR'], "stock_with_financials.csv")
     combined_df.to_csv(output_file, index=False)
     print(f"Combined stock metrics saved to: {output_file}")

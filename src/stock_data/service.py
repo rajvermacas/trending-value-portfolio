@@ -4,6 +4,7 @@ from stock_data import params
 import yfinance as yf
 from datetime import datetime, timedelta
 from typing import List, Set
+import builtins
 
 
 def get_nifty_stock_names() -> List[str]:
@@ -16,65 +17,94 @@ def get_nifty_stock_names() -> List[str]:
 
     return list(df.Symbol)
 
-def get_stocks_with_financials(tickers: Set[str], lookback_days=180) -> pd.DataFrame:
-    # Download financial data for all tickers
-    # Calculate the date 6 months ago
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=lookback_days)
+def _get_rounded_value(value: float, decimals: int=2) -> float:
+    return round(value, decimals) if value is not None and isinstance(value, float) else None
 
-    # Download price data for all tickers for the last 6 months
-    data = yf.download(tickers, start=start_date, end=end_date)
-    
+def get_stocks_with_financials(tickers: Set[str]) -> pd.DataFrame:
     all_metrics = []
     for ticker in tickers:
-        # Create a Ticker object
-        stock = yf.Ticker(ticker)
-        
-        # Fetch the data
-        info = stock.info
-        
-        # Fetch cash flow data
-        cash_flow = stock.cashflow
-        
-        # Calculate Price to Cash Flow ratio
-        cash_flow_from_operations_column_name = "Operating Cash Flow"
+        try:
+            # Create a Ticker object
+            stock = yf.Ticker(ticker)
+            
+            # Fetch the data
+            info = stock.info
+            
+            # Fetch cash flow data
+            cash_flow = stock.cashflow
+            
+            # Calculate Price to Cash Flow ratio
+            cash_flow_from_operations_column_name = "Operating Cash Flow"
 
-        if not cash_flow.empty and cash_flow_from_operations_column_name in cash_flow.index:
-            cash_flow_from_operations = cash_flow.loc[cash_flow_from_operations_column_name].iloc[0]
+            if not cash_flow.empty and cash_flow_from_operations_column_name in cash_flow.index:
+                cash_flow_from_operations = cash_flow.loc[cash_flow_from_operations_column_name].iloc[0]
 
-            if cash_flow_from_operations != 0:
-                price_to_cash_flow = info.get('marketCap', 0) / cash_flow_from_operations
+                if cash_flow_from_operations != 0:
+                    price_to_cash_flow = info.get('marketCap', 0) / cash_flow_from_operations
+                else:
+                    price_to_cash_flow = None
             else:
                 price_to_cash_flow = None
-        else:
-            price_to_cash_flow = None
+            
+            # Extract the requested metrics
+            try:
+                metrics = {
+                    "Ticker": ticker,
+                    "Price-to-Earnings Ratio": _get_rounded_value(info.get("trailingPE", -1)),
+                    "Price-to-Book Ratio": _get_rounded_value(info.get("priceToBook", -1)),
+                    "Price-to-Sales Ratio": _get_rounded_value(info.get("priceToSalesTrailing12Months", -1)),
+                    "EV-to-EBITDA Ratio": _get_rounded_value(info.get("enterpriseToEbitda", -1)),
+                    "Price-to-Cash Flow Ratio": _get_rounded_value(price_to_cash_flow),
+                    "Dividend Yield": _get_rounded_value(info.get("dividendYield", -1) * 100),
+                    "Market Cap": info.get("marketCap"),
+                }
+            except Exception as fault:
+                print(f"Error extracting financial metrics for ticker={ticker}: {fault}")
+            
+            all_metrics.append(metrics)
         
-        # Calculate the percentage change in price over the last 6 months
-        if ticker in data["Close"].columns:
-            initial_price = data["Close"][ticker].iloc[0]
-            final_price = data["Close"][ticker].iloc[-1]
-            price_change_6m = ((final_price - initial_price) / initial_price) * 100
-        else:
-            price_change_6m = None
-        
-        # Extract the requested metrics
-        metrics = {
-            "Ticker": ticker,
-            "Price-to-Earnings Ratio": info.get("trailingPE"),
-            "Price-to-Book Ratio": info.get("priceToBook"),
-            "Price-to-Sales Ratio": info.get("priceToSalesTrailing12Months"),
-            "EV-to-EBITDA Ratio": info.get("enterpriseToEbitda"),
-            "Price-to-Cash Flow Ratio": price_to_cash_flow,
-            "Dividend Yield": info.get("dividendYield", 0) * 100 if info.get("dividendYield") else None,
-            "Market Cap": info.get("marketCap"),
-            "6-Month Price Change (%)": price_change_6m
-        }
-        
-        all_metrics.append(metrics)
+        except Exception as fault:
+            print(f"Error fetching financial metrics for ticker={ticker}: {fault}")
     
     df = pd.DataFrame(all_metrics)
     return df
 
+def get_price_change(df: pd.DataFrame, days: int=180) -> pd.DataFrame:
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=days)
+
+    # Download price data for all tickers for the last 6 months
+    data = yf.download(df.Ticker.tolist(), start=start_date, end=end_date)
+
+    # Check if data is an empty DataFrame
+    if data.empty:
+        print(f"Warning: Downloaded price data is empty. Unable to calculate price changes.Tickers={df.Ticker.tolist()}")
+        builtins.logging.debug(f"Warning: Downloaded price data is empty. Unable to calculate price changes.Tickers={df.Ticker.tolist()}")
+        
+        df['Price Change Percent'] = None
+        return df
+
+    price_changes = []
+    for ticker in df.Ticker:
+        try:
+            if ticker in data["Close"].columns:
+                initial_price = data["Close"][ticker].iloc[0]
+                final_price = data["Close"][ticker].iloc[-1]
+                price_change = round(((final_price - initial_price) / initial_price) * 100, 2)
+                price_changes.append(price_change)
+            else:
+                price_changes.append(None)
+        
+        except Exception as fault:
+            print(f"Error calculating price change for ticker={ticker}: {fault}")
+    
+    try:
+        df['Price Change Percent'] = price_changes
+    except Exception as fault:
+        print(f"Error assigning price change to dataframe: {fault}")
+
+    return df
+    
 
 if __name__=="__main__":
     import sys
@@ -83,8 +113,7 @@ if __name__=="__main__":
     from main import init_project
     init_project()
 
-    start_date = "2024-07-25"
-    end_date = "2024-09-26"
-    ticker_names = ["DIXON.NS", "PGEL.NS"]
-
-    # get_tickers_data(start_date, end_date, ticker_names)
+    tickers = get_nifty_stock_names()
+    df = get_stocks_with_financials(tickers)
+    df = get_price_change(df)
+    print(df)
