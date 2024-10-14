@@ -7,11 +7,11 @@ from typing import List, Set
 import builtins
 
 
-def get_nifty_stock_names() -> List[str]:
-    # The result set will contain .NS suffix
-    csv_path = os.path.join(os.getenv("INPUT_DIR"), params.NIFTY_STOCKS_CSV_FILENAME)
-    print(f"Getting all nifty stocks from path: {csv_path}")
+def get_nifty_stock_names(csv_path: str=None) -> List[str]:
+    if csv_path is None:
+        csv_path = os.path.join(os.getenv("INPUT_DIR"), params.NIFTY_STOCKS_CSV_FILENAME)
 
+    print(f"Getting all nifty stocks from path: {csv_path}")
     df = pd.read_csv(csv_path)
     df['Symbol'] = df['Symbol']+".NS"
 
@@ -72,6 +72,9 @@ def get_stocks_with_financials(tickers: Set[str]) -> pd.DataFrame:
 def get_price_change(df: pd.DataFrame, days: int=180) -> pd.DataFrame:
     end_date = datetime.now()
     start_date = end_date - timedelta(days=days)
+
+    if df.empty:
+        raise Exception("Input dataframe is empty. No price change can be calculated.")
 
     # Download price data for all tickers for the last 6 months
     data = yf.download(df.Ticker.tolist(), start=start_date, end=end_date)

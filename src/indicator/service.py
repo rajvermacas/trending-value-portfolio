@@ -44,20 +44,46 @@ def assign_ranks_to_financial_metrics(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def process_stocks(ticker_names: List[str], counter: int) -> pd.DataFrame:
-    init_log(counter)
+    try:
+        init_log(counter)
+        
+        builtins.logging.info(f"Processing ticker counter={counter}")
+        builtins.logging.info(f"Get stocks financials for ticker counter={counter}")
+        df = get_stocks_with_financials(ticker_names)
+
+        builtins.logging.info(f"Assinging ranks to financial metrics for ticker counter={counter}")
+        df = assign_ranks_to_financial_metrics(df)
+
+        # Filter out the stocks whose market cap is greater than 500 cr
+        df = df[df["Market Cap"] > 5_000_000_000]  # 500 crores in rupees
+
+        return df
+
+        if df.empty:
+            raise Exception("No stocks found with market cap greater than 500 crores")
+
+        # Filter out 10% of the lowest sum of ranks stocks
+        builtins.logging.info(f"Filtering out 10% of the lowest sum of ranks stocks for ticker counter={counter}")
+        ten_percent = int(len(df) * 0.1)
+        if ten_percent < 1:
+            ten_percent = 1
+            
+        df = df.nsmallest(n=ten_percent, columns="Sum of Ranks")
+
+        # Get price change in the last 6 months
+        builtins.logging.info(f"Get price change for ticker counter={counter}")
+        df = get_price_change(df)
+
+        # Sort the dataframe by "Price Change Percentage" in descending order
+        builtins.logging.info(f"Sorting dataframe by Price Change Percentage for ticker counter={counter}")
+        df = df.sort_values(by="Price Change Percent", ascending=False)
+
+        # Filter out top 25 stocks
+        builtins.logging.info(f"Filtering out top 25 stocks for ticker counter={counter}")
+        df = df.head(25)
+
+        return df
     
-    builtins.logging.info(f"Processing ticker counter={counter}")
-    builtins.logging.info(f"Get stocks financials for ticker counter={counter}")
-    df = get_stocks_with_financials(ticker_names)
-
-    builtins.logging.info(f"Get price change for ticker counter={counter}")
-    df = get_price_change(df)
-
-    builtins.logging.info(f"Assinging ranks to financial metrics for ticker counter={counter}")
-    df = assign_ranks_to_financial_metrics(df)
-
-    builtins.logging.info(f"Sorting dataframe by Sum of Ranks for ticker counter={counter}")
-    df = df.sort_values(by="Sum of Ranks", ascending=True)
-    builtins.logging.info(f"Sorted dataframe for ticker counter={counter}")
-    
-    return df
+    except Exception as fault:
+        print(f"Error processing ticker counter = {counter}: {fault}")
+        return pd.DataFrame()
