@@ -42,10 +42,6 @@ def get_stock_data(filepath: str=None) -> pd.DataFrame:
     ]
 
     for column in numeric_columns:
-        if column in df.columns:
-            df[column] = pd.to_numeric(df[column], errors='coerce')
+        df[column] = pd.to_numeric(df[column], errors='coerce')
 
-    # Remove the '6M Return' conversion as it's already handled in the next line
-    df["6M Return"] = pd.to_numeric(df["6M Return"])
-    
     return df

@@ -4,7 +4,6 @@ import sys
 import os
 import argparse
 import pandas as pd
-import logging
 import builtins
 
 
@@ -90,14 +89,16 @@ if __name__ == "__main__":
     df = get_stock_data()
     df = assign_ranks_to_financial_metrics(df)
 
+    output_file = os.path.join(os.getenv("OUTPUT_DIR"), "all_stocks_with_financials.csv")
+    df.to_csv(os.path.join(output_file), index=False)
+    print(f"All stocks with financials saved to: {output_file}")
+
     df = trending_value_strategy(df)
 
-    # df = df.sort_values(by="6M Return", ascending=False)
-    
     builtins.logging.info("Combined and sorted dataframe:")
     builtins.logging.info(df)
 
     # Optionally, you can save the combined dataframe to a CSV file
     output_file = os.path.join(os.environ['OUTPUT_DIR'], "trending_value_portfolio.csv")
     df.to_csv(output_file, index=False)
-    print(f"Combined stock metrics saved to: {output_file}")
+    print(f"Trending stock portfolio saved to: {output_file}")
