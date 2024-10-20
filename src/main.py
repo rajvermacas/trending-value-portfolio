@@ -116,6 +116,13 @@ if __name__ == "__main__":
     if combined_df.empty:
         raise Exception("Combined dataframe is empty")
     
+    combined_df.to_csv(
+        os.path.join(
+            os.getenv("OUTPUT_DIR"), "all_stocks_with_financials.csv"
+        ),
+        index=False
+    )
+    
     combined_df = trending_value_strategy(combined_df)
 
     # Sort the combined dataframe by "Sum of Ranks" in ascending order
@@ -125,6 +132,6 @@ if __name__ == "__main__":
     builtins.logging.info(combined_df)
 
     # Optionally, you can save the combined dataframe to a CSV file
-    output_file = os.path.join(os.environ['OUTPUT_DIR'], "stock_with_financials.csv")
+    output_file = os.path.join(os.environ['OUTPUT_DIR'], "trending_value_portfolio.csv")
     combined_df.to_csv(output_file, index=False)
     print(f"Combined stock metrics saved to: {output_file}")

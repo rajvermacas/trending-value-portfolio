@@ -1,5 +1,5 @@
 import pandas as pd
-from stock_data.service import get_stocks_with_financials, get_price_change
+from stock_data.service import get_stocks_with_financials, get_stocks_with_financials_from_excel, get_price_change
 from typing import List
 from utils.service import init_log
 import builtins
@@ -56,31 +56,6 @@ def process_stocks(ticker_names: List[str], counter: int) -> pd.DataFrame:
 
         # Filter out the stocks whose market cap is greater than 500 cr
         df = df[df["Market Cap"] > 5_000_000_000]  # 500 crores in rupees
-
-        return df
-
-        if df.empty:
-            raise Exception("No stocks found with market cap greater than 500 crores")
-
-        # Filter out 10% of the lowest sum of ranks stocks
-        builtins.logging.info(f"Filtering out 10% of the lowest sum of ranks stocks for ticker counter={counter}")
-        ten_percent = int(len(df) * 0.1)
-        if ten_percent < 1:
-            ten_percent = 1
-            
-        df = df.nsmallest(n=ten_percent, columns="Sum of Ranks")
-
-        # Get price change in the last 6 months
-        builtins.logging.info(f"Get price change for ticker counter={counter}")
-        df = get_price_change(df)
-
-        # Sort the dataframe by "Price Change Percentage" in descending order
-        builtins.logging.info(f"Sorting dataframe by Price Change Percentage for ticker counter={counter}")
-        df = df.sort_values(by="Price Change Percent", ascending=False)
-
-        # Filter out top 25 stocks
-        builtins.logging.info(f"Filtering out top 25 stocks for ticker counter={counter}")
-        df = df.head(25)
 
         return df
     

@@ -50,6 +50,7 @@ def get_stocks_with_financials(tickers: Set[str]) -> pd.DataFrame:
             try:
                 metrics = {
                     "Ticker": ticker,
+                    "Company Name": info.get("longName", ""),
                     "Price-to-Earnings Ratio": _get_rounded_value(info.get("trailingPE", -1)),
                     "Price-to-Book Ratio": _get_rounded_value(info.get("priceToBook", -1)),
                     "Price-to-Sales Ratio": _get_rounded_value(info.get("priceToSalesTrailing12Months", -1)),
@@ -67,6 +68,13 @@ def get_stocks_with_financials(tickers: Set[str]) -> pd.DataFrame:
             print(f"Error fetching financial metrics for ticker={ticker}: {fault}")
     
     df = pd.DataFrame(all_metrics)
+    return df
+
+def get_stocks_with_financials_from_excel(csv_path: str=None) -> pd.DataFrame:
+    # Read the Excel file and create a DataFrame
+    excel_path = r"C:\Users\mrina\Documents\Projects\trending-value-portfolio\input\stock_excel.xlsx"
+    df = pd.read_excel(excel_path)
+
     return df
 
 def get_price_change(df: pd.DataFrame, days: int=180) -> pd.DataFrame:
