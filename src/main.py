@@ -40,8 +40,8 @@ if __name__ == "__main__":
     init_project()
 
 # ============================ Business logic ==============================
-from stock_data.service import get_nifty_stock_names, get_price_change
-from indicator.service import process_stocks
+from stock_data.service import get_stock_data
+from indicator.service import assign_ranks_to_financial_metrics
 from multiprocessing import Pool
 import math
 
@@ -60,11 +60,10 @@ def trending_value_strategy(df: pd.DataFrame) -> pd.DataFrame:
 
     # Get price change in the last 6 months
     builtins.logging.info(f"Get price change for tickers")
-    df = get_price_change(df)
 
     # Sort the dataframe by "Price Change Percentage" in descending order
-    builtins.logging.info(f"Sorting dataframe by Price Change Percentage")
-    df = df.sort_values(by="Price Change Percent", ascending=False)
+    builtins.logging.info(f"Sorting dataframe by 6M Return")
+    df = df.sort_values(by="6M Return", ascending=False)
 
     # Filter out top 25 stocks
     builtins.logging.info(f"Filtering out top 25 stocks")
@@ -80,12 +79,6 @@ if __name__ == "__main__":
 
     if os.getenv("LOCAL_MODE") == "True":
         print("Running in local mode")
-        # ticker_names = ["AEGISCHEM.NS", "PVP.NS"]
-
-        csv_path = os.path.join(os.getenv("INPUT_DIR"), "nifty_stock_names_copy.csv")
-        ticker_names = get_nifty_stock_names(csv_path)
-
-        result_dataframes.append(process_stocks(ticker_names, 0))
 
     else:
         print("Running in non local mode")
@@ -93,45 +86,18 @@ if __name__ == "__main__":
         process_count = os.cpu_count()
         print(f"Process count: {process_count}")
 
-        ticker_names = get_nifty_stock_names()
-        page_size = len(ticker_names) // process_count
-        
-        if page_size == 0:
-            page_size = process_count
-
-        print(f"Stock Page size: {page_size}")
-        params = []
-
-        for i in range(0, len(ticker_names), page_size):                    
-            ticker_names_page = ticker_names[i:i+page_size]        
-            params.append((ticker_names_page, math.ceil(i/page_size)))
-
-        with Pool(process_count) as p:
-            print("Running in distributed mode. Please check logs in output/logs")
-            result_dataframes = p.starmap(process_stocks, params)
-
     # Combine all dataframes into a single dataframe
-    combined_df = pd.concat(result_dataframes, ignore_index=True)
+    df = get_stock_data()
+    df = assign_ranks_to_financial_metrics(df)
 
-    if combined_df.empty:
-        raise Exception("Combined dataframe is empty")
+    df = trending_value_strategy(df)
+
+    # df = df.sort_values(by="6M Return", ascending=False)
     
-    combined_df.to_csv(
-        os.path.join(
-            os.getenv("OUTPUT_DIR"), "all_stocks_with_financials.csv"
-        ),
-        index=False
-    )
-    
-    combined_df = trending_value_strategy(combined_df)
-
-    # Sort the combined dataframe by "Sum of Ranks" in ascending order
-    # combined_df = combined_df.sort_values(by="Price Change Percent", ascending=False)
-
     builtins.logging.info("Combined and sorted dataframe:")
-    builtins.logging.info(combined_df)
+    builtins.logging.info(df)
 
     # Optionally, you can save the combined dataframe to a CSV file
     output_file = os.path.join(os.environ['OUTPUT_DIR'], "trending_value_portfolio.csv")
-    combined_df.to_csv(output_file, index=False)
+    df.to_csv(output_file, index=False)
     print(f"Combined stock metrics saved to: {output_file}")

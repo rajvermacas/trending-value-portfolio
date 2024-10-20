@@ -1,1 +1,1 @@
-NIFTY_STOCKS_CSV_FILENAME="nifty_stock_names.csv"
+NIFTY_STOCKS_CSV_FILENAME="ticker_tape_1871_201024.csv"
