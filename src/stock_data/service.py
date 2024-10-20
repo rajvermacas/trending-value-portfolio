@@ -21,6 +21,7 @@ def get_stock_data(filepath: str=None) -> pd.DataFrame:
     # "EV/EBITDA Ratio",
     # "Price / CFO",
     # "Dividend Yield"
+    # "PEG Ratio"
 
     if filepath is None:
         filepath = os.path.join(os.getenv("INPUT_DIR"), params.NIFTY_STOCKS_CSV_FILENAME)
@@ -43,5 +44,14 @@ def get_stock_data(filepath: str=None) -> pd.DataFrame:
 
     for column in numeric_columns:
         df[column] = pd.to_numeric(df[column], errors='coerce')
+    
+    # Calculate PEG Ratio
+    df['PEG Ratio'] = df['PE Ratio'] / df['1Y Historical EPS Growth']
+    
+    # Handle cases where 1Y Historical EPS Growth is zero or negative
+    df.loc[df['1Y Historical EPS Growth'] <= 0, 'PEG Ratio'] = float('inf')
+    
+    # Convert inf values to NaN for better handling in further analysis
+    df['PEG Ratio'].replace([float('inf'), -float('inf')], pd.NA, inplace=True)
 
     return df

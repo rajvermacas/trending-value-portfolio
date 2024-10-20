@@ -18,6 +18,7 @@ def assign_ranks_to_financial_metrics(df: pd.DataFrame) -> pd.DataFrame:
     # "EV/EBITDA Ratio",
     # "Price / CFO",
     # "Dividend Yield"
+    # "PEG Ratio"
 
     # List of metrics to rank
     metrics_to_rank = [
@@ -26,7 +27,8 @@ def assign_ranks_to_financial_metrics(df: pd.DataFrame) -> pd.DataFrame:
         "PS Ratio",
         "EV/EBITDA Ratio",
         "Price / CFO",
-        "Dividend Yield"
+        "Dividend Yield",
+        "PEG Ratio"
     ]
     
     # Rank each metric
