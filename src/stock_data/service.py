@@ -45,13 +45,12 @@ def get_stock_data(filepath: str=None) -> pd.DataFrame:
     for column in numeric_columns:
         df[column] = pd.to_numeric(df[column], errors='coerce')
     
-    # Calculate PEG Ratio
+    # Calculate PEG Ratio efficiently
     df['PEG Ratio'] = df['PE Ratio'] / df['1Y Historical EPS Growth']
+    df['PEG Ratio'] = df['PEG Ratio'].round(2)
     
-    # Handle cases where 1Y Historical EPS Growth is zero or negative
-    df.loc[df['1Y Historical EPS Growth'] <= 0, 'PEG Ratio'] = float('inf')
-    
-    # Convert inf values to NaN for better handling in further analysis
-    df['PEG Ratio'].replace([float('inf'), -float('inf')], pd.NA, inplace=True)
+    # Handle invalid cases (divide by zero, negative growth)
+    mask = (df['1Y Historical EPS Growth'] <= 0) | (df['PEG Ratio'].isin([float('inf'), -float('inf')]))
+    df.loc[mask, 'PEG Ratio'] = pd.NA
 
     return df
