@@ -70,6 +70,15 @@ def trending_value_strategy(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+def calculate_annualized_avg_return(df: pd.DataFrame) -> pd.DataFrame:
+    # Convert 6M Return to annualized return and calculate the average.
+    df['Annualized Return'] = (1 + df['6M Return'] / 100) ** 2 - 1
+
+    # Calculate the average annualized return
+    average_annualized_return = df['Annualized Return'].mean()
+
+    return round(average_annualized_return * 100, 2)  # Convert to percentage for better readability return
+
 
 if __name__ == "__main__":
     print("Main execution starts")
@@ -102,3 +111,6 @@ if __name__ == "__main__":
     output_file = os.path.join(os.environ['OUTPUT_DIR'], "trending_value_portfolio.csv")
     df.to_csv(output_file, index=False)
     print(f"Trending stock portfolio saved to: {output_file}")
+
+    annualized_avg_return = calculate_annualized_avg_return(df)
+    print(f"Annualized average return: {annualized_avg_return} %")
