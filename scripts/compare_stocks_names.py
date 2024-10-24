@@ -1,19 +1,42 @@
 import pandas as pd
+import os
 
-# Read the CSV files
-current_file = r"C:\Users\mrina\Documents\Projects\trending-value-portfolio\output\trending_value_portfolio_ticker_tape_1846_241024.csv"
-reference_file = r"C:\Users\mrina\Documents\Projects\trending-value-portfolio\output\trending_value_portfolio_ticker_tape_1871_201024.csv"
+# Get the output directory from environment variable
+output_dir = r'C:\Users\mrina\Documents\Projects\trending-value-portfolio\output'
+
+print(f"\nSearching for files in: {output_dir}")
+
+# Get all files starting with 'trending_value_portfolio' in the output directory
+files = [f for f in os.listdir(output_dir) if f.startswith('trending_value_portfolio_ticker_tape')]
+
+# Sort files in descending order
+files.sort(reverse=True)
+
+# Get the two most recent files
+current_file = os.path.join(output_dir, files[0])
+reference_file = os.path.join(output_dir, files[1])
+
+print("\nComparing files:")
+print(f"Current file  : {files[0]}")
+print(f"Reference file: {files[1]}")
 
 current_df = pd.read_csv(current_file)
 reference_df = pd.read_csv(reference_file)
 
+print(f"\nCurrent file rows  : {len(current_df)}")
+print(f"Reference file rows: {len(reference_df)}")
+
 # Assuming the stock names are in a column called 'Name' or 'Symbol'
-# Adjust the column name if it's different in your CSV files
 column_name = 'Name'  # or 'Symbol'
+
+print(f"\nUsing column: {column_name}")
 
 # Get the set of stock names from each DataFrame
 current_stocks = set(current_df[column_name])
 reference_stocks = set(reference_df[column_name])
+
+print(f"Total stocks in current file  : {len(current_stocks)}")
+print(f"Total stocks in reference file: {len(reference_stocks)}")
 
 # Find new stocks (in current but not in reference)
 new_stocks = current_stocks - reference_stocks
@@ -21,15 +44,25 @@ new_stocks = current_stocks - reference_stocks
 # Find stocks that were removed (in reference but not in current)
 delisted_stocks = reference_stocks - current_stocks
 
-# Print the results
-print("New stocks (present in current file but not in reference):")
-for stock in new_stocks:
-    print(f"- {stock}")
+print("\n" + "="*50)
+print("COMPARISON RESULTS")
+print("="*50)
+
+print("\nNew stocks (present in current file but not in reference):")
+if new_stocks:
+    for stock in sorted(new_stocks):
+        print(f"- {stock}")
+else:
+    print("None")
 
 print("\nDelisted stocks (present in reference but not in current):")
-for stock in delisted_stocks:
-    print(f"- {stock}")
+if delisted_stocks:
+    for stock in sorted(delisted_stocks):
+        print(f"- {stock}")
+else:
+    print("None")
 
-# Print summary
-print(f"\nTotal new stocks: {len(new_stocks)}")
+print("\nSummary:")
+print(f"Total new stocks     : {len(new_stocks)}")
 print(f"Total delisted stocks: {len(delisted_stocks)}")
+print("="*50)

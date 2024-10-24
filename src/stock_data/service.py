@@ -26,6 +26,7 @@ def get_stock_data(filepath: str=None) -> pd.DataFrame:
     if filepath is None:
         filepath = os.path.join(os.getenv("INPUT_DIR"), params.NIFTY_STOCKS_CSV_FILENAME)
     
+    print(f"Reading data from {filepath}")
     df = pd.read_csv(filepath)
 
     # Convert necessary columns to numeric
