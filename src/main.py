@@ -5,6 +5,7 @@ import os
 import argparse
 import pandas as pd
 import builtins
+from stock_data import params
 
 
 def init_project():
@@ -98,7 +99,7 @@ if __name__ == "__main__":
     df = get_stock_data()
     df = assign_ranks_to_financial_metrics(df)
 
-    output_file = os.path.join(os.getenv("OUTPUT_DIR"), "all_stocks_with_financials.csv")
+    output_file = os.path.join(os.getenv("OUTPUT_DIR"), f"all_stocks_with_financials_{params.NIFTY_STOCKS_CSV_FILENAME}")
     df.to_csv(os.path.join(output_file), index=False)
     print(f"All stocks with financials saved to: {output_file}")
 
@@ -108,7 +109,7 @@ if __name__ == "__main__":
     builtins.logging.info(df)
 
     # Optionally, you can save the combined dataframe to a CSV file
-    output_file = os.path.join(os.environ['OUTPUT_DIR'], "trending_value_portfolio.csv")
+    output_file = os.path.join(os.environ['OUTPUT_DIR'], f"trending_value_portfolio_{params.NIFTY_STOCKS_CSV_FILENAME}")
     df.to_csv(output_file, index=False)
     print(f"Trending stock portfolio saved to: {output_file}")
 
