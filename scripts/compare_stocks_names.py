@@ -50,8 +50,18 @@ print("="*50)
 
 print("\nNew stocks (present in current file but not in reference):")
 if new_stocks:
+    # Get indices for new stocks
+    new_stocks_info = []
     for stock in sorted(new_stocks):
-        print(f"- {stock}")
+        index = current_df[current_df[column_name] == stock].index[0]
+        new_stocks_info.append((index, stock))
+    
+    # Sort by index
+    new_stocks_info.sort()
+    
+    # Print with index information
+    for index, stock in new_stocks_info:
+        print(f"- {stock} (at row {index + 2})") # +2 to account for header row and index
 else:
     print("None")
 
