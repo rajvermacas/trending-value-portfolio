@@ -1,3 +1,18 @@
+"""
+1. Create input files per sector. 
+for example: ticker_tape_241201_communication_services
+Create these files for all the sector
+
+2. For all the files created in step 1, Run main.py to create output file like below:
+trending_value_portfolio_ticker_tape_241201_communication_services.csv
+
+3. Combine all the top 3 stocks from all the output files created in step 2 into one file like below:
+treding_value_portfolio_all_sectors_2_stocks.csv
+
+4. Run double_sort.py to create output file like below:
+double_sorted_portfolio_treding_value_portfolio_all_sectors_2_stocks_241201.csv
+"""
+
 import pandas as pd
 import os
 from datetime import datetime
@@ -47,7 +62,8 @@ def double_sort_strategy(df: pd.DataFrame, return_weight: float = 0.6, rank_weig
 
 def main():
     # Read input file
-    input_file = os.path.join('/root/projects/output', 'trending_value_portfolio_ticker_tape_241201.csv')
+    input_file_name = 'treding_value_portfolio_all_sectors_2_stocks.csv'
+    input_file = os.path.join('/root/projects/output', input_file_name)
     df = pd.read_csv(input_file)
     
     # Apply double sorting strategy
@@ -55,7 +71,7 @@ def main():
     
     # Save results
     timestamp = datetime.now().strftime('%y%m%d')
-    output_file = os.path.join('/root/projects/output', f'double_sorted_portfolio_{timestamp}.csv')
+    output_file = os.path.join('/root/projects/output', f'double_sorted_portfolio_{input_file_name[:-4]}_{timestamp}.csv')
     result_df.to_csv(output_file, index=False)
     
     print(f"\nTop 10 stocks after double sorting:")
