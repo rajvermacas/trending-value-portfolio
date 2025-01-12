@@ -53,8 +53,8 @@ def trending_value_strategy(df: pd.DataFrame) -> pd.DataFrame:
     # Filter out 10% of the lowest sum of ranks stocks
     builtins.logging.info(f"Filtering out 10% of the lowest sum of ranks stocks for tickers")
     ten_percent = int(len(df) * 0.1)
-    if ten_percent < 1:
-        ten_percent = 1
+    if ten_percent < 25:
+        ten_percent = 25
         
     df = df.nsmallest(n=ten_percent, columns="Sum of Ranks")
 
