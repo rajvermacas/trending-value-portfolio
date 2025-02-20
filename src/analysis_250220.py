@@ -74,39 +74,43 @@ def get_stock_data(filepath: str=None) -> pd.DataFrame:
     return df
 
 
-def find_fallen_value_stocks():
+def find_fallen_stocks(df: pd.DataFrame, return_column: str, mcap_filter: float = None) -> pd.DataFrame:
+    """
+    Filter stocks based on return threshold and optional market cap
+    """
+    filter_conditions = [
+        (df[return_column] < -35),  # Price fallen more than 35%
+        # (df['Earnings Per Share'] > 0),  # Current EPS is positive
+        # (df['1Y Historical EPS Growth'] > 0),  # EPS is growing
+        (df['1Y Historical Revenue Growth'] > 0),
+        # (df['1Y Hist Op. Cash Flow Growth'] > 0),
+        # (df['1Y Historical EBITDA Growth'] > 0),
+        # (df['Net Income (Q)'] > 0)
+    ]
+    
+    if mcap_filter is not None:
+        filter_conditions.append(df['Market Cap'] >= mcap_filter)
+    
+    filtered_stocks = df[pd.concat(filter_conditions, axis=1).all(axis=1)]
+    
+    # Sort by return (ascending) to get the biggest drops first
+    filtered_stocks = filtered_stocks.sort_values(return_column)
+    
+    return filtered_stocks
+
+def analyze_fallen_stocks():
     # Get the stock data
     file_name = "ticker_tape_250220.csv"
     df = get_stock_data(filepath=os.path.join(os.getenv("INPUT_DIR"), file_name))
     
-    # Apply filters:
-    # 1. Price fallen more than 35% (6M Return < -35)
-    # 2. PEG < 1
-    # 3. Positive growth across multiple metrics, positive net income, and healthy EPS
-    filtered_stocks = df[
-        (df['6M Return'] < -35) & 
-        (df['PEG Ratio'] < 1) & 
-        (df['PEG Ratio'] > 0) &  # Exclude negative PEG
-        # Check for positive earnings and growth
-        (df['Earnings Per Share'] > 0) &  # Current EPS is positive
-        (df['1Y Historical EPS Growth'] > 0) &  # EPS is growing
-        # Check for positive growth across multiple metrics
-        (df['1Y Historical Revenue Growth'] > 0) &
-        (df['1Y Hist Op. Cash Flow Growth'] > 0) &
-        (df['1Y Historical EBITDA Growth'] > 0) &
-        # Ensure positive net income
-        (df['Net Income (Q)'] > 0)
-    ]
-    
-    # Sort by PEG Ratio (ascending) to get the most undervalued stocks first
-    filtered_stocks = filtered_stocks.sort_values('PEG Ratio')
-    
-    # Select relevant columns for display
+    # Columns to display in output
     columns_to_display = [
         'Name', 
         'Sub-Sector',
+        'Market Cap',
+        '1M Return',
         '6M Return',
-        'PEG Ratio',
+        '1Y Return',
         'Earnings Per Share',
         '1Y Historical EPS Growth',
         'Net Income (Q)',
@@ -114,39 +118,75 @@ def find_fallen_value_stocks():
         '1Y Hist Op. Cash Flow Growth',
         '1Y Historical EBITDA Growth',
         'PE Ratio',
-        'Market Cap'
+        'PEG Ratio'
     ]
     
-    # Display top 100 results
-    result = filtered_stocks[columns_to_display].head(100)
+    # Define analysis scenarios
+    scenarios = [
+        {
+            'name': '1M_fallen_stocks',
+            'return_column': '1M Return',
+            'description': 'Stocks fallen by 35% or more in 1 month'
+        },
+        {
+            'name': '6M_fallen_stocks',
+            'return_column': '6M Return',
+            'description': 'Stocks fallen by 35% or more in 6 months'
+        },
+        {
+            'name': '1Y_fallen_stocks',
+            'return_column': '1Y Return',
+            'description': 'Stocks fallen by 35% or more in 1 year'
+        },
+        {
+            'name': '1Y_fallen_large_cap_stocks',
+            'return_column': '1Y Return',
+            'mcap_filter': 10000,  # 10,000 crores for large cap
+            'description': 'Large cap stocks (>10,000 cr) fallen by 35% or more in 1 year'
+        }
+    ]
     
-    # Save results to CSV
-    output_file = 'fallen_value_stocks.csv'
-    result.to_csv(output_file, index=False)
+    print("\n" + "="*70)
+    print("Analyzing Fallen Stocks with Strong Fundamentals")
+    print("="*70)
     
-    print("\n" + "="*50)
-    print(f"Found {len(filtered_stocks)} Undervalued Growth Stocks")
-    print("="*50)
-    print("\nFilter Criteria:")
-    print("1. Price Action:")
-    print("   - 6-month return < -35% (Significant price drop)")
-    print("\n2. Valuation:")
-    print("   - PEG Ratio < 1 (Undervalued relative to growth)")
-    print("\n3. Earnings Quality:")
+    # Process each scenario
+    for scenario in scenarios:
+        # Get filtered stocks
+        filtered_stocks = find_fallen_stocks(
+            df, 
+            scenario['return_column'],
+            scenario.get('mcap_filter')
+        )
+        
+        # Save to CSV
+        output_file = f"{scenario['name']}.csv"
+        result = filtered_stocks[columns_to_display].head(100)
+        result.to_csv(output_file, index=False)
+        
+        # Print summary
+        print(f"\n{scenario['description']}:")
+        print(f"- Found {len(filtered_stocks)} stocks")
+        print(f"- Top 100 results saved to: {output_file}")
+        
+        # Print market cap distribution if available
+        if len(filtered_stocks) > 0:
+            mcap_stats = filtered_stocks['Market Cap'].describe()
+            print(f"- Market Cap Statistics (in crores):")
+            print(f"  * Min: {mcap_stats['min']:.0f}")
+            print(f"  * Median: {mcap_stats['50%']:.0f}")
+            print(f"  * Max: {mcap_stats['max']:.0f}")
+    
+    print("\nFilter Criteria Applied to All Results:")
+    print("1. Earnings Quality:")
     print("   - Positive current EPS")
     print("   - Positive Net Income (Latest Quarter)")
-    print("\n4. Growth Metrics (All Positive):")
+    print("\n2. Growth Metrics (All Positive):")
     print("   - EPS Growth (Year-over-Year)")
     print("   - Revenue Growth (Year-over-Year)")
     print("   - Operating Cash Flow Growth (Year-over-Year)")
     print("   - EBITDA Growth (Year-over-Year)")
-    print("\n" + "-"*50)
-    print(f"Results saved to: {output_file}")
-    print("-"*50 + "\n")
-    
-    return result
+    print("\n" + "-"*70)
 
 if __name__ == "__main__":
-    results = find_fallen_value_stocks()
-    print("\nTop 10 stocks:")
-    print(results.head(10).to_string(index=False))
+    analyze_fallen_stocks()
