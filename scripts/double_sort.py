@@ -6,7 +6,7 @@ Create these files for all the sector
 2. For all the files created in step 1, Run main.py to create output file like below:
 trending_value_portfolio_ticker_tape_241201_communication_services.csv
 
-3. Combine all the top 3 stocks from all the output files created in step 2 into one file like below:
+3. Combine the top 3 stocks from all the output files created in step 2 into one file like below:
 treding_value_portfolio_all_sectors_2_stocks.csv
 
 4. Run double_sort.py to create output file like below:

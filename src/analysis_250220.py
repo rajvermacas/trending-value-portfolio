@@ -80,9 +80,11 @@ def find_fallen_stocks(df: pd.DataFrame, return_column: str, mcap_filter: float 
     """
     filter_conditions = [
         (df[return_column] < -35),  # Price fallen more than 35%
-        # (df['Earnings Per Share'] > 0),  # Current EPS is positive
-        # (df['1Y Historical EPS Growth'] > 0),  # EPS is growing
+        (df['Earnings Per Share'] > 0),  # Current EPS is positive
+        (df['1Y Historical EPS Growth'] > 0),  # EPS is growing
         (df['1Y Historical Revenue Growth'] > 0),
+        (df['PEG Ratio'] < 1), 
+        (df['PEG Ratio'] > 0),  # Exclude negative PEG
         # (df['1Y Hist Op. Cash Flow Growth'] > 0),
         # (df['1Y Historical EBITDA Growth'] > 0),
         # (df['Net Income (Q)'] > 0)
@@ -146,9 +148,20 @@ def analyze_fallen_stocks():
         }
     ]
     
-    print("\n" + "="*70)
-    print("Analyzing Fallen Stocks with Strong Fundamentals")
-    print("="*70)
+    print("\n" + "="*80)
+    print("FALLEN STOCKS ANALYSIS - Strong Fundamentals with Price Correction")
+    print("="*80)
+    
+    print("\nFinding stocks that meet the following criteria:")
+    print("1. Price Correction: Drop of 35% or more in specified timeframe")
+    print("2. Earnings Quality:")
+    print("   - Positive current EPS")
+    print("   - PEG Ratio < 1 (Undervalued relative to growth)")
+    print("3. Growth Metrics (All Positive):")
+    print("   - EPS Growth (Year-over-Year)")
+    print("   - Revenue Growth (Year-over-Year)")
+    print("\nGenerating 4 separate analyses...")
+    print("-"*80)
     
     # Process each scenario
     for scenario in scenarios:
@@ -165,28 +178,29 @@ def analyze_fallen_stocks():
         result.to_csv(output_file, index=False)
         
         # Print summary
-        print(f"\n{scenario['description']}:")
-        print(f"- Found {len(filtered_stocks)} stocks")
-        print(f"- Top 100 results saved to: {output_file}")
+        print(f"\n{scenario['description'].upper()}:")
+        print(f"- Found {len(filtered_stocks)} matching stocks")
+        print(f"- CSV file: {output_file}")
+        print(f"- Sorted by: {scenario['return_column']} (ascending) - biggest price drops first")
         
         # Print market cap distribution if available
         if len(filtered_stocks) > 0:
             mcap_stats = filtered_stocks['Market Cap'].describe()
-            print(f"- Market Cap Statistics (in crores):")
-            print(f"  * Min: {mcap_stats['min']:.0f}")
-            print(f"  * Median: {mcap_stats['50%']:.0f}")
-            print(f"  * Max: {mcap_stats['max']:.0f}")
+            print("- Market Cap Distribution (in crores):")
+            print(f"  * Minimum: ₹{mcap_stats['min']:,.0f} cr")
+            print(f"  * Median:  ₹{mcap_stats['50%']:,.0f} cr")
+            print(f"  * Maximum: ₹{mcap_stats['max']:,.0f} cr")
+            
+            # Print return range
+            returns = filtered_stocks[scenario['return_column']]
+            print(f"- {scenario['return_column']} Range:")
+            print(f"  * Worst:  {returns.min():.1f}%")
+            print(f"  * Median: {returns.median():.1f}%")
+            print(f"  * Best:   {returns.max():.1f}%")
     
-    print("\nFilter Criteria Applied to All Results:")
-    print("1. Earnings Quality:")
-    print("   - Positive current EPS")
-    print("   - Positive Net Income (Latest Quarter)")
-    print("\n2. Growth Metrics (All Positive):")
-    print("   - EPS Growth (Year-over-Year)")
-    print("   - Revenue Growth (Year-over-Year)")
-    print("   - Operating Cash Flow Growth (Year-over-Year)")
-    print("   - EBITDA Growth (Year-over-Year)")
-    print("\n" + "-"*70)
+    print("\n" + "="*80)
+    print("ANALYSIS COMPLETE")
+    print("="*80)
 
 if __name__ == "__main__":
     analyze_fallen_stocks()
