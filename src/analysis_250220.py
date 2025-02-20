@@ -82,13 +82,15 @@ def find_fallen_value_stocks():
     # Apply filters:
     # 1. Price fallen more than 35% (6M Return < -35)
     # 2. PEG < 1
-    # 3. Positive growth across multiple metrics and positive net income
+    # 3. Positive growth across multiple metrics, positive net income, and healthy EPS
     filtered_stocks = df[
         (df['6M Return'] < -35) & 
         (df['PEG Ratio'] < 1) & 
         (df['PEG Ratio'] > 0) &  # Exclude negative PEG
+        # Check for positive earnings and growth
+        (df['Earnings Per Share'] > 0) &  # Current EPS is positive
+        (df['1Y Historical EPS Growth'] > 0) &  # EPS is growing
         # Check for positive growth across multiple metrics
-        (df['1Y Historical EPS Growth'] > 0) &
         (df['1Y Historical Revenue Growth'] > 0) &
         (df['1Y Hist Op. Cash Flow Growth'] > 0) &
         (df['1Y Historical EBITDA Growth'] > 0) &
@@ -105,8 +107,9 @@ def find_fallen_value_stocks():
         'Sub-Sector',
         '6M Return',
         'PEG Ratio',
-        'Net Income (Q)',
+        'Earnings Per Share',
         '1Y Historical EPS Growth',
+        'Net Income (Q)',
         '1Y Historical Revenue Growth',
         '1Y Hist Op. Cash Flow Growth',
         '1Y Historical EBITDA Growth',
@@ -120,16 +123,26 @@ def find_fallen_value_stocks():
     # Save results to CSV
     output_file = 'fallen_value_stocks.csv'
     result.to_csv(output_file, index=False)
-    print(f"\nFound {len(filtered_stocks)} stocks matching criteria:")
-    print("- Price fallen more than 35%")
-    print("- PEG Ratio < 1")
-    print("- Positive quarterly net income")
-    print("- Positive growth in:")
-    print("  * EPS")
-    print("  * Revenue")
-    print("  * Operating Cash Flow")
-    print("  * EBITDA")
-    print(f"\nResults saved to {output_file}")
+    
+    print("\n" + "="*50)
+    print(f"Found {len(filtered_stocks)} Undervalued Growth Stocks")
+    print("="*50)
+    print("\nFilter Criteria:")
+    print("1. Price Action:")
+    print("   - 6-month return < -35% (Significant price drop)")
+    print("\n2. Valuation:")
+    print("   - PEG Ratio < 1 (Undervalued relative to growth)")
+    print("\n3. Earnings Quality:")
+    print("   - Positive current EPS")
+    print("   - Positive Net Income (Latest Quarter)")
+    print("\n4. Growth Metrics (All Positive):")
+    print("   - EPS Growth (Year-over-Year)")
+    print("   - Revenue Growth (Year-over-Year)")
+    print("   - Operating Cash Flow Growth (Year-over-Year)")
+    print("   - EBITDA Growth (Year-over-Year)")
+    print("\n" + "-"*50)
+    print(f"Results saved to: {output_file}")
+    print("-"*50 + "\n")
     
     return result
 
