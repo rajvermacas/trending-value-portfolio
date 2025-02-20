@@ -1,6 +1,5 @@
 import pandas as pd
 import os
-import os
 import pandas as pd
 from stock_data import params
 import yfinance as yf
@@ -83,12 +82,18 @@ def find_fallen_value_stocks():
     # Apply filters:
     # 1. Price fallen more than 35% (6M Return < -35)
     # 2. PEG < 1
-    # 3. Positive growth (1Y Historical EPS Growth > 0)
+    # 3. Positive growth across multiple metrics and positive net income
     filtered_stocks = df[
         (df['6M Return'] < -35) & 
         (df['PEG Ratio'] < 1) & 
         (df['PEG Ratio'] > 0) &  # Exclude negative PEG
-        (df['1Y Historical EPS Growth'] > 0)
+        # Check for positive growth across multiple metrics
+        (df['1Y Historical EPS Growth'] > 0) &
+        (df['1Y Historical Revenue Growth'] > 0) &
+        (df['1Y Hist Op. Cash Flow Growth'] > 0) &
+        (df['1Y Historical EBITDA Growth'] > 0) &
+        # Ensure positive net income
+        (df['Net Income (Q)'] > 0)
     ]
     
     # Sort by PEG Ratio (ascending) to get the most undervalued stocks first
@@ -100,7 +105,11 @@ def find_fallen_value_stocks():
         'Sub-Sector',
         '6M Return',
         'PEG Ratio',
+        'Net Income (Q)',
         '1Y Historical EPS Growth',
+        '1Y Historical Revenue Growth',
+        '1Y Hist Op. Cash Flow Growth',
+        '1Y Historical EBITDA Growth',
         'PE Ratio',
         'Market Cap'
     ]
@@ -111,8 +120,16 @@ def find_fallen_value_stocks():
     # Save results to CSV
     output_file = 'fallen_value_stocks.csv'
     result.to_csv(output_file, index=False)
-    print(f"\nFound {len(filtered_stocks)} stocks matching criteria.")
-    print(f"Top 100 results saved to {output_file}")
+    print(f"\nFound {len(filtered_stocks)} stocks matching criteria:")
+    print("- Price fallen more than 35%")
+    print("- PEG Ratio < 1")
+    print("- Positive quarterly net income")
+    print("- Positive growth in:")
+    print("  * EPS")
+    print("  * Revenue")
+    print("  * Operating Cash Flow")
+    print("  * EBITDA")
+    print(f"\nResults saved to {output_file}")
     
     return result
 
